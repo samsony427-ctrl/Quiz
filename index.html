@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人格去中心化與存在性核實</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            cursor: default;
+        }
+        body {
+            background-color: #050505;
+            color: #b0b0b0;
+            font-family: "SimSun", "New MingLiU", "微軟正黑體", serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+        #container {
+            width: 90%;
+            max-width: 600px;
+            padding: 30px;
+            border: 1px solid #1a1a1a;
+            background-color: #0a0a0a;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+        }
+        .system-log {
+            font-size: 12px;
+            color: #555;
+            margin-bottom: 20px;
+            font-family: monospace;
+            min-height: 18px;
+        }
+        .system-log.alert {
+            color: #8a1f1f;
+            animation: pulse 2s infinite;
+        }
+        h2 {
+            font-size: 20px;
+            color: #d0d0d0;
+            margin-bottom: 25px;
+            line-height: 1.6;
+            font-weight: normal;
+        }
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .btn {
+            background-color: #0f0f0f;
+            border: 1px solid #222;
+            color: #888;
+            padding: 15px 20px;
+            text-align: left;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .btn:hover {
+            background-color: #151515;
+            border-color: #444;
+            color: #c0c0c0;
+        }
+        .hidden-opt {
+            display: none;
+            color: #8a1f1f;
+            border-color: #4a1515;
+        }
+        .hidden-opt:hover {
+            background-color: #200a0a;
+            border-color: #8a1f1f;
+            color: #ff4d4d;
+        }
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            display: none;
+            z-index: 9999;
+        }
+        #sys-dialog {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #0d0d0d;
+            border: 1px solid #333;
+            padding: 30px;
+            width: 320px;
+            z-index: 10000;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(0,0,0,1);
+        }
+        #sys-dialog p {
+            font-size: 14px;
+            color: #aaa;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        #sys-dialog button {
+            background: #151515;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 8px 25px;
+            font-size: 13px;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.4; }
+            50% { opacity: 1; }
+            100% { opacity: 0.4; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="overlay"></div>
+
+    <div id="sys-dialog">
+        <p id="dialog-text">權限轉移成功。<br>感謝您出讓本具軀殼的控制權。<br>祂很滿意。</p>
+        <button id="dialog-btn">確認</button>
+    </div>
+
+    <div id="container">
+        <div id="log" class="system-log">[系統提示] 請確保您目前處於獨處狀態...</div>
+        <div id="quiz-box">
+            <!-- 題目會透過 JS 動態渲染 -->
+        </div>
+    </div>
+
+    <script>
+        // 驚悚環境設定：微弱的合成呼吸聲
+        let ttsInterval;
+        function playBreathingSound() {
+            // 利用瀏覽器內建語音合成，發出極其輕微的氣音，模擬呼吸
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(" 唔 ");
+                utterance.volume = 0.05; // 極低音量
+                utterance.rate = 0.5;
+                utterance.pitch = 0.1;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+        // 每5秒嘗試發出一點極輕微的氣音
+        setInterval(playBreathingSound, 7000);
+
+        const questions = [
+            {
+                log: "[系統日誌：環境感知初始化已完成]",
+                q: "第一題：請不要思考，立刻用餘光看一眼你「左肩後方」的空間。那裡的空氣看起來比平常更黏稠嗎？",
+                options: [
+                    { text: "沒有，只是普通的房間。", next: 1 },
+                    { text: "有點模糊，光線好像有些折射。", next: 1 },
+                    { text: "我不敢看。", next: 1 }
+                ],
+                idleTime: 15000,
+                onIdle: () => {
+                    document.getElementById('log').innerText = "[系統日誌：偵測到鏡頭有微幅震動。]";
+                    document.getElementById('log').classList.add('alert');
+                    // 播放一聲極輕的氣音
+                    playBreathingSound();
+                }
+            },
+            {
+                log: "[系統日誌：正在核實歷史記憶完整度]",
+                q: "第二題：想像你回到家，看到「另一個自己」正坐在沙發上陪家人聊天。家人笑得很開心，完全沒發現異狀。而那個「你」轉過頭，對你露出一個「極不自然、肌肉強行拉扯」的微笑。你認為牠是怎麼代替你的？",
+                options: [
+                    { text: "牠趁我睡覺時，偷走了我的名字。", next: 2 },
+                    { text: "牠其實一直都在，只是今天我提早回家了。", next: 2 },
+                    { text: "我才是那個假的，沙發上那個才是真的。", next: 2 }
+                ],
+                idleTime: 12000,
+                onIdle: () => {
+                    // 模擬寂靜：背景提示
+                    document.getElementById('log').innerText = "[警告：偵測到背景音頻訊號斷開，請保持安靜]";
+                }
+            },
+            {
+                log: "[系統日誌：思考迴路讀取中...]",
+                q: "第三題：這份問卷是由「人類」設計的。但你是否想過，此時正在螢幕另一端，一字一字讀著你大腦思考迴路的「我」，到底是什麼？",
+                options: [
+                    { text: "一段 AI 程式碼。", next: 3 },
+                    { text: "某個無聊網民寫的網頁。", next: 3 },
+                    { text: "我知道你在看我。請你不要再讀我的想法了。", next: 3, isHidden: true }
+                ],
+                idleTime: 15000,
+                onIdle: () => {
+                    // 顯示隱藏選項
+                    const hiddenOpt = document.querySelector('.hidden-opt');
+                    if(hiddenOpt) hiddenOpt.style.display = 'block';
+                    
+                    // 30秒黑屏嚇人
+                    setTimeout(() => {
+                        const overlay = document.getElementById('overlay');
+                        overlay.style.display = 'block';
+                        document.title = "【正在看著你】";
+                        setTimeout(() => {
+                            overlay.style.display = 'none';
+                        }, 800);
+                    }, 10000);
+                }
+            },
+            {
+                log: "[系統日誌：本機認知功能複查]",
+                q: "第四題：請仔細回憶。你今天出門或起床時，真的是用你現在常用的這隻手開門的嗎？你能確定你腦海中 5 歲以前的記憶，不是在 10 分鐘前被這份問卷強行寫入的嗎？",
+                options: [
+                    { text: "我能確定，我的記憶是真的。", next: 4, isDodge: true }, // 會躲開的按鈕
+                    { text: "我開始懷疑了。", next: 4 },
+                    { text: "這不重要。", next: 4 }
+                ],
+                idleTime: 999999, // 此題主要玩躲開按鈕
+                onIdle: () => {}
+            },
+            {
+                log: "[系統日誌：數據同步 99.43%]",
+                q: "第五題：感謝您的配合。測試已接近完成。在生成人格報告前，系統需要跟您確認最後一件事。您現在的手腳，還聽您的指揮嗎？",
+                options: [
+                    { text: "聽。", next: 'end' },
+                    { text: "感覺有點麻木。", next: 'end' }
+                ],
+                idleTime: 10000,
+                onIdle: () => {
+                    // 自動緩慢向上滾動
+                    let scrollCount = 0;
+                    const scrollInterval = setInterval(() => {
+                        window.scrollBy(0, 2);
+                        scrollCount++;
+                        if(scrollCount > 100) {
+                            clearInterval(scrollInterval);
+                            // 跳出假系統彈窗
+                            document.getElementById('sys-dialog').style.display = 'block';
+                        }
+                    }, 30);
+                }
+            }
+        ];
+
+        let currentStep = 0;
+        let idleTimer;
+
+        function renderQuestion(index) {
+            if (index === 'end') {
+                showResult();
+                return;
+            }
+            
+            currentStep = index;
+            const data = questions[index];
+            
+            // 更新 Log
+            const logDiv = document.getElementById('log');
+            logDiv.innerText = data.log;
+            logDiv.classList.remove('alert');
+
+            // 構建 HTML
+            let html = `<h2>${data.q}</h2><div class="options">`;
+            data.options.forEach((opt, i) => {
+                if (opt.isHidden) {
+                    html += `<button class="btn hidden-opt" onclick="choose(${opt.next})">${opt.text}</button>`;
+                } else if (opt.isDodge) {
+                    html += `<button class="btn id-dodge" onmouseenter="dodge(this)" onclick="choose(${opt.next})">${opt.text}</button>`;
+                } else {
+                    html += `<button class="btn" onclick="choose(${opt.next})">${opt.text}</button>`;
+                }
+            });
+            html += `</div>`;
+            
+            document.getElementById('quiz-box').innerHTML = html;
+
+            // 設定閒置計時器
+            clearTimeout(idleTimer);
+            idleTimer = setTimeout(data.onIdle, data.idleTime);
+        }
+
+        function choose(next) {
+            clearTimeout(idleTimer);
+            renderQuestion(next);
+        }
+
+        // 第四題按鈕躲開效果
+        function dodge(elm) {
+            elm.style.position = 'absolute';
+            elm.style.top = Math.random() * 80 + '%';
+            elm.style.left = Math.random() * 80 + '%';
+            document.getElementById('log').innerText = "[警告：拒絕接受此認知選項，請重新選擇]";
+            document.getElementById('log').classList.add('alert');
+        }
+
+        // 結束畫面
+        function showResult() {
+            document.getElementById('log').innerText = "[數據核對完成。報告已鎖定]";
+            document.getElementById('log').classList.remove('alert');
+            
+            // 延遲載入結果，營造詭異感
+            document.getElementById('quiz-box').innerHTML = `<h2>正在生成報告，請凝視螢幕核心... (99%)</h2>`;
+            
+            setTimeout(() => {
+                document.getElementById('quiz-box').innerHTML = `
+                    <h2>【分析報告：深度認知共振者】</h2>
+                    <p style="line-height:1.8; color:#aaa; font-size:14px; margin-bottom:15px;">
+                        你發現了那些需要「等待」才會出現的裂縫。這代表你的大腦波長與周圍的陰暗環境高度同步。
+                    </p>
+                    <p style="line-height:1.8; color:#8a1f1f; font-size:14px;">
+                        你剛才是不是覺得房間變冷了？那不是錯覺。當你把注意力完全集中在這些文字上時，你的防禦機制最低，牠們通常會選擇在這個時候貼近你的背。不要回頭，假裝你沒發現。
+                    </p>
+                `;
+            }, 3000);
+        }
+
+        // 假彈窗的確認鍵：點了沒反應
+        document.getElementById('dialog-btn').addEventListener('click', () => {
+            alert("系統錯誤：無法交還控制權。");
+        });
+
+        // 初始化第一題
+        renderQuestion(0);
+    </script>
+</body>
+</html>
